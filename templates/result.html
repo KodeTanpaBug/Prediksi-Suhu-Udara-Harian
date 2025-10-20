@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hasil Prediksi - LSTM Temperature</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h2 class="mb-1">
+              <i class="fas fa-chart-line text-primary me-2"></i>
+              Hasil Prediksi Suhu
+            </h2>
+            <p class="text-muted mb-0">File: <strong>{{ filename }}</strong></p>
+          </div>
+          <a href="{{ url_for('index') }}" class="btn back-btn">
+            <i class="fas fa-arrow-left me-2"></i>Kembali ke Home
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Metrics Cards -->
+    <div class="row mb-4">
+      <div class="col-md-3 mb-3">
+        <div class="card metric-card h-100">
+          <div class="card-body text-center">
+            <i class="fas fa-chart-bar fa-2x mb-2"></i>
+            <h5 class="card-title">RMSE</h5>
+            <h3 class="mb-0">{{ rmse }}°C</h3>
+            <small>Root Mean Square Error</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 mb-3">
+        <div class="card metric-card h-100">
+          <div class="card-body text-center">
+            <i class="fas fa-chart-pie fa-2x mb-2"></i>
+            <h5 class="card-title">MAE</h5>
+            <h3 class="mb-0">{{ mae }}°C</h3>
+            <small>Mean Absolute Error</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 mb-3">
+        <div class="card metric-card h-100">
+          <div class="card-body text-center">
+            <i class="fas fa-percentage fa-2x mb-2"></i>
+            <h5 class="card-title">R²</h5>
+            <h3 class="mb-0">{{ r2 }}</h3>
+            <small>Coefficient of Determination</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3 mb-3">
+        <div class="card metric-card h-100">
+          <div class="card-body text-center">
+            <i class="fas fa-database fa-2x mb-2"></i>
+            <h5 class="card-title">Data Points</h5>
+            <h3 class="mb-0">{{ prediction_points }}</h3>
+            <small>Prediksi Dihasilkan</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Model Information -->
+    <div class="row mb-4">
+      <div class="col-md-6 mb-3">
+        <div class="card model-info-card h-100">
+          <div class="card-body">
+            <h5 class="card-title">
+              <i class="fas fa-brain me-2"></i>
+              Informasi Model
+            </h5>
+            <ul class="list-unstyled mb-0">
+              <li><strong>Model Type:</strong> {{ model_type }}</li>
+              <li><strong>Timestep:</strong> {{ timesteps }} hari</li>
+              <li><strong>Total Data:</strong> {{ data_points }} points</li>
+              <li><strong>Prediction Points:</strong> {{ prediction_points }} points</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 mb-3">
+        <div class="card data-card h-100">
+          <div class="card-body">
+            <h5 class="card-title">
+              <i class="fas fa-info-circle me-2"></i>
+              Interpretasi Hasil
+            </h5>
+            <ul class="list-unstyled mb-0">
+              <li><strong>RMSE:</strong> 
+                {% if rmse < 2 %}
+                  <span class="text-success">Sangat Baik</span>
+                {% elif rmse < 3 %}
+                  <span class="text-warning">Baik</span>
+                {% else %}
+                  <span class="text-danger">Perlu Perbaikan</span>
+                {% endif %}
+              </li>
+              <li><strong>R²:</strong> 
+                {% if r2 > 0.8 %}
+                  <span class="text-success">Excellent</span>
+                {% elif r2 > 0.6 %}
+                  <span class="text-warning">Good</span>
+                {% else %}
+                  <span class="text-danger">Poor</span>
+                {% endif %}
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visualization -->
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card shadow-lg">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+              <i class="fas fa-chart-area me-2"></i>
+              Visualisasi Hasil Prediksi
+            </h5>
+          </div>
+          <div class="card-body p-0">
+            <img src="/{{ img_path }}" class="img-fluid result-plot" alt="Grafik hasil prediksi">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Preview -->
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-table me-2"></i>
+              Cuplikan Data
+            </h5>
+          </div>
+          <div class="card-body">
+            {{ head | safe }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row mt-4">
+      <div class="col-12 text-center">
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+          <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">
+            <i class="fas fa-upload me-2"></i>
+            Upload Data Baru
+          </a>
+          <a href="{{ url_for('historical') }}" class="btn btn-outline-info btn-lg">
+            <i class="fas fa-chart-line me-2"></i>
+            Lihat Analisis Historis
+          </a>
+          <button class="btn btn-outline-success btn-lg" onclick="downloadResults()">
+            <i class="fas fa-download me-2"></i>
+            Download Hasil
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-dark text-white py-3 mt-5">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-6">
+          <p class="mb-0">
+            <i class="fas fa-thermometer-half me-2"></i>
+            LSTM Temperature Prediction System
+          </p>
+        </div>
+        <div class="col-md-6 text-md-end">
+          <p class="mb-0">
+            <i class="fas fa-code me-1"></i>
+            Powered by Flask & TensorFlow
+          </p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function downloadResults() {
+      // Create a simple text report
+      const report = `
+LSTM Temperature Prediction Results
+=====================================
+File: {{ filename }}
+Model: {{ model_type }}
+Timestep: {{ timesteps }} days
+Data Points: {{ data_points }}
+Prediction Points: {{ prediction_points }}
+
+Metrics:
+- RMSE: {{ rmse }}°C
+- MAE: {{ mae }}°C
+- R²: {{ r2 }}
+
+Generated on: ${new Date().toLocaleString()}
+      `;
+      
+      const blob = new Blob([report], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'prediction_results.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }
+
+    // Add some animation to the cards
+    document.addEventListener('DOMContentLoaded', function() {
+      const cards = document.querySelectorAll('.card');
+      cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+          card.style.transition = 'all 0.5s ease';
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        }, index * 100);
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Analisis Data Historis - LSTM Temperature</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+</head>
+<body class="bg-light">
+  <!-- Hero Section -->
+  <div class="hero-section">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-8">
+          <h1 class="display-5 fw-bold mb-3">
+            <i class="fas fa-chart-line me-3"></i>
+            Analisis Data Historis
+          </h1>
+          <p class="lead mb-4">
+            Eksplorasi mendalam terhadap dataset suhu harian Delhi dengan analisis tren, 
+            musiman, dan pola yang mendukung prediksi LSTM.
+          </p>
+          <a href="{{ url_for('index') }}" class="btn back-btn">
+            <i class="fas fa-arrow-left me-2"></i>Kembali ke Home
+          </a>
+        </div>
+        <div class="col-lg-4 text-center">
+          <i class="fas fa-database fa-8x opacity-75"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="container py-5">
+    <!-- Dataset Information -->
+    <div class="row mb-5">
+      <div class="col-md-4 mb-3">
+        <div class="card info-card h-100">
+          <div class="card-body text-center">
+            <i class="fas fa-database fa-3x mb-3"></i>
+            <h5 class="card-title">Dataset Info</h5>
+            <ul class="list-compact mb-0">
+              <li><strong>Total Data:</strong> {{ data_points }}</li>
+              <li><strong>Periode:</strong> 2013-2016</li>
+              <li><strong>Fitur:</strong> 4 variabel cuaca</li>
+              <li><strong>Format:</strong> Time Series</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 mb-3">
+        <div class="card stats-card h-100">
+          <div class="card-body text-center">
+            <i class="fas fa-chart-bar fa-3x mb-3"></i>
+            <h5 class="card-title">Karakteristik Data</h5>
+            <ul class="list-compact mb-0">
+              <li><strong>Range Suhu:</strong> 6-39°C</li>
+              <li><strong>Variabilitas:</strong> Tinggi</li>
+              <li><strong>Seasonality:</strong> Kuat</li>
+              <li><strong>Trend:</strong> Stabil</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 mb-3">
+        <div class="card analysis-card h-100">
+          <div class="card-body text-center">
+            <i class="fas fa-brain fa-3x mb-3"></i>
+            <h5 class="card-title">Insights</h5>
+            <ul class="list-compact mb-0">
+              <li><strong>Musim Panas:</strong> Juni-Agustus</li>
+              <li><strong>Musim Dingin:</strong> Des-Feb</li>
+              <li><strong>Transisi:</strong> Variabilitas Tinggi</li>
+              <li><strong>Korelasi:</strong> Multi-faktor</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Visualization -->
+    <div class="row mb-5">
+      <div class="col-12">
+        <div class="card shadow-lg">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+              <i class="fas fa-chart-area me-2"></i>
+              Analisis Komprehensif Data Historis
+            </h5>
+          </div>
+          <div class="card-body p-0">
+            <div class="chart-container">
+              <img src="/{{ plot_path }}" class="img-fluid" alt="Analisis data historis">
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Statistical Analysis -->
+    <div class="row mb-5">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="mb-0">
+              <i class="fas fa-table me-2"></i>
+              Statistik Deskriptif
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="stats-table">
+              {{ stats | safe }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Analysis Insights -->
+    <div class="row mb-5">
+      <div class="col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+              <i class="fas fa-sun me-2"></i>
+              Pola Musiman
+            </h5>
+          </div>
+          <div class="card-body">
+            <ul class="list-unstyled">
+              <li><strong>Musim Panas (Juni-Agustus):</strong> Suhu tertinggi dengan rata-rata 30-35°C</li>
+              <li><strong>Musim Dingin (Desember-Februari):</strong> Suhu terendah dengan rata-rata 15-20°C</li>
+              <li><strong>Musim Semi (Maret-Mei):</strong> Transisi dengan peningkatan suhu bertahap</li>
+              <li><strong>Musim Gugur (September-November):</strong> Transisi dengan penurunan suhu bertahap</li>
+            </ul>
+            <div class="alert alert-info mt-3">
+              <i class="fas fa-lightbulb me-2"></i>
+              <strong>Insight:</strong> Pola musiman yang kuat ini menjadi dasar penting untuk model LSTM dalam memprediksi suhu harian.
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 mb-4">
+        <div class="card h-100">
+          <div class="card-header bg-warning text-white">
+            <h5 class="mb-0">
+              <i class="fas fa-chart-line me-2"></i>
+              Karakteristik Data
+            </h5>
+          </div>
+          <div class="card-body">
+            <ul class="list-unstyled">
+              <li><strong>Distribusi Normal:</strong> Data mengikuti distribusi normal dengan beberapa outlier</li>
+              <li><strong>Variabilitas Tinggi:</strong> Fluktuasi suhu harian yang signifikan</li>
+              <li><strong>Korelasi Multi-faktor:</strong> Suhu berkorelasi dengan kelembaban, angin, dan tekanan</li>
+              <li><strong>Trend Stabil:</strong> Tidak ada trend jangka panjang yang signifikan</li>
+            </ul>
+            <div class="alert alert-warning mt-3">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              <strong>Perhatian:</strong> Variabilitas tinggi memerlukan model yang robust seperti LSTM untuk menangkap pola kompleks.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Model Implications -->
+    <div class="row mb-5">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-info text-white">
+            <h5 class="mb-0">
+              <i class="fas fa-cogs me-2"></i>
+              Implikasi untuk Model LSTM
+            </h5>
+          </div>
+          <div class="card-body">
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <div class="text-center">
+                  <i class="fas fa-clock fa-2x text-primary mb-2"></i>
+                  <h6>Timestep Optimal</h6>
+                  <p class="text-muted">30 hari optimal untuk menangkap pola musiman dan tren jangka pendek</p>
+                </div>
+              </div>
+              <div class="col-md-4 mb-3">
+                <div class="text-center">
+                  <i class="fas fa-layer-group fa-2x text-success mb-2"></i>
+                  <h6>Multiple Features</h6>
+                  <p class="text-muted">4 fitur cuaca memberikan konteks yang lebih kaya untuk prediksi</p>
+                </div>
+              </div>
+              <div class="col-md-4 mb-3">
+                <div class="text-center">
+                  <i class="fas fa-brain fa-2x text-warning mb-2"></i>
+                  <h6>Arsitektur LSTM</h6>
+                  <p class="text-muted">LSTM ideal untuk menangkap dependensi temporal yang kompleks</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="row">
+      <div class="col-12 text-center">
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+          <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg">
+            <i class="fas fa-upload me-2"></i>
+            Mulai Prediksi
+          </a>
+          <button class="btn btn-outline-info btn-lg" onclick="downloadAnalysis()">
+            <i class="fas fa-download me-2"></i>
+            Download Analisis
+          </button>
+          <button class="btn btn-outline-success btn-lg" onclick="showDataInfo()">
+            <i class="fas fa-info-circle me-2"></i>
+            Info Dataset
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-dark text-white py-3 mt-5">
+    <div class="container">
+      <div class="row">
+        <div class="col-md-6">
+          <p class="mb-0">
+            <i class="fas fa-chart-line me-2"></i>
+            Historical Analysis - LSTM Temperature Prediction
+          </p>
+        </div>
+        <div class="col-md-6 text-md-end">
+          <p class="mb-0">
+            <i class="fas fa-code me-1"></i>
+            Powered by Flask & Matplotlib
+          </p>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    function downloadAnalysis() {
+      const report = `
+Historical Data Analysis Report
+===============================
+Dataset: Daily Delhi Climate Data
+Period: 2013-2016
+Total Data Points: {{ data_points }}
+
+Key Insights:
+- Strong seasonal patterns with summer peaks and winter lows
+- High variability requiring robust LSTM models
+- Multi-factor correlations between weather variables
+- Optimal timestep: 30 days for capturing seasonal patterns
+
+Model Implications:
+- LSTM architecture ideal for temporal dependencies
+- Multiple features provide richer context
+- 30-day timestep captures both short and medium-term patterns
+
+Generated on: ${new Date().toLocaleString()}
+      `;
+      
+      const blob = new Blob([report], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'historical_analysis_report.txt';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    }
+
+    function showDataInfo() {
+      alert('Dataset Information:\n\n' +
+            'Source: Daily Delhi Climate Data\n' +
+            'Period: 2013-2016 (4 years)\n' +
+            'Total Points: {{ data_points }}\n' +
+            'Features: Temperature, Humidity, Wind Speed, Pressure\n' +
+            'Format: Daily time series\n\n' +
+            'This dataset provides rich temporal patterns\n' +
+            'perfect for LSTM temperature prediction.');
+    }
+
+    // Add animation to cards
+    document.addEventListener('DOMContentLoaded', function() {
+      const cards = document.querySelectorAll('.card');
+      cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        setTimeout(() => {
+          card.style.transition = 'all 0.5s ease';
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        }, index * 100);
+      });
+    });
+  </script>
+</body>
+</html>

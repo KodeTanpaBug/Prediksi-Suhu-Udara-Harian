@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediksi Suhu Udara Harian Menggunakan Model LSTM</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="{{ url_for('static', filename='styles.css') }}" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="main-container">
+            <div class="header">
+                <h1><i class="fas fa-thermometer-half"></i> Prediksi Suhu LSTM</h1>
+                <p>Model LSTM untuk Prediksi Suhu Harian di Delhi</p>
+                <p class="text-muted">Menggunakan data historis 30 hari terakhir untuk memprediksi suhu hari berikutnya</p>
+          </div>
+
+            <!-- Input Dataset Manual (dipindah ke atas) -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-file-upload"></i> Input Dataset Manual (CSV)
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">Unggah file CSV atau tempel teks CSV dengan kolom: <code>meantemp, humidity, wind_speed, meanpressure</code>. Sistem akan menggunakan 30 baris terakhir untuk prediksi.</p>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Upload File CSV</label>
+                                    <input type="file" class="form-control" id="manualCsvFile" accept=".csv" />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Atau Tempel Teks CSV</label>
+                                    <textarea id="manualCsvText" class="form-control" rows="6" placeholder="meantemp,humidity,wind_speed,meanpressure\n25,60,5,1010\n..."></textarea>
+                                </div>
+                            </div>
+                            <hr />
+                            <h6 class="mt-2"><i class="fas fa-keyboard"></i> Atau Input Manual Baris per Baris (tanpa upload)</h6>
+                            <div id="manualRows" class="table-responsive">
+                                <table class="table table-bordered align-middle">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>meantemp</th>
+                                            <th>humidity</th>
+                                            <th>wind_speed</th>
+                                            <th>meanpressure</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="manualRowsBody"></tbody>
+                                </table>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-primary" onclick="addManualRow()"><i class="fas fa-plus"></i> Tambah Baris</button>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="clearManualRows()"><i class="fas fa-trash"></i> Bersihkan</button>
+                                </div>
+                                <div class="form-text mt-2">Masukkan minimal 30 baris untuk prediksi.</div>
+                            </div>
+                            <div class="mt-3 d-grid">
+                                <button class="btn btn-primary btn-lg" onclick="manualPredict()">
+                                    <i class="fas fa-play"></i> Prediksi dari Dataset Manual
+                                </button>
+                            </div>
+                            <div id="manualPredictResult" class="mt-3"></div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Prediksi Suhu -->
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="fas fa-crystal-ball"></i> Prediksi Suhu Hari Berikutnya
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">Klik tombol di bawah untuk mendapatkan prediksi suhu hari berikutnya berdasarkan data 30 hari terakhir.</p>
+                            <button class="btn btn-primary btn-lg w-100" onclick="predictTemperature()">
+                                <i class="fas fa-magic"></i> Prediksi Suhu
+                            </button>
+                            <div id="predictionResult" class="mt-3"></div>
+      </div>
+          </div>
+        </div>
+
+                <!-- Data Historis -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-chart-line"></i> Data Historis
+          </div>
+                        <div class="card-body">
+                            <p class="card-text">Lihat tren suhu historis dan analisis musiman dari data training dan testing.</p>
+                            <button class="btn btn-info btn-lg w-100" onclick="showHistoricalData()">
+                                <i class="fas fa-history"></i> Tampilkan Data Historis
+                            </button>
+                            <div id="historicalData" class="mt-3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+            <!-- Performa Model -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-chart-bar"></i> Performa Model LSTM
+          </div>
+          <div class="card-body">
+                            <p class="card-text">Evaluasi performa model pada data test dengan berbagai metrik evaluasi.</p>
+                            <button class="btn btn-success btn-lg w-100" onclick="showModelPerformance()">
+                                <i class="fas fa-tachometer-alt"></i> Tampilkan Performa Model
+                </button>
+                            <div id="modelPerformance" class="mt-3"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+            <!-- Informasi Model -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <i class="fas fa-info-circle"></i> Informasi Model
+                        </div>
+          <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="metric-card">
+                                        <div class="metric-value">LSTM</div>
+                                        <div class="metric-label">Arsitektur</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="metric-card">
+                                        <div class="metric-value">30</div>
+                                        <div class="metric-label">Timesteps (hari)</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="metric-card">
+                                        <div class="metric-value">4</div>
+                                        <div class="metric-label">Fitur Input</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="metric-card">
+                                        <div class="metric-value">1.96°C</div>
+                                        <div class="metric-label">RMSE Validation</div>
+                                    </div>
+                                </div>
+      </div>
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-list"></i> Fitur yang Digunakan:</h6>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item">Mean Temperature (°C)</li>
+                                        <li class="list-group-item">Humidity (%)</li>
+                                        <li class="list-group-item">Wind Speed (km/h)</li>
+                                        <li class="list-group-item">Mean Pressure (hPa)</li>
+                                    </ul>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6><i class="fas fa-cogs"></i> Konfigurasi Model:</h6>
+                                    <ul class="list-group list-group-flush">
+                                        <li class="list-group-item">LSTM Units: 50</li>
+                                        <li class="list-group-item">Dropout Rate: 0.2</li>
+                                        <li class="list-group-item">Optimizer: Adam</li>
+                                        <li class="list-group-item">Loss Function: MSE</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+            <!-- Input Dataset Manual (DIHAPUS SESUAI PERMINTAAN) -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function showLoading(elementId) {
+            document.getElementById(elementId).innerHTML = `
+                <div class="loading">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Memproses data...</p>
+                </div>
+            `;
+        }
+
+        function predictTemperature() {
+            showLoading('predictionResult');
+            
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({})
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('predictionResult').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Error: ${data.error}
+        </div>
+                    `;
+                } else {
+                    document.getElementById('predictionResult').innerHTML = `
+                        <div class="prediction-result">
+                            <h4><i class="fas fa-thermometer-half"></i> Prediksi Suhu</h4>
+                            <div class="prediction-value">${data.prediction}</div>
+                            <p><i class="fas fa-info-circle"></i> ${data.confidence}</p>
+        </div>
+                        <div class="plot-container">
+                            <img src="data:image/png;base64,${data.plot}" alt="Prediction Plot">
+      </div>
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-cogs"></i> Informasi Model:</h6>
+                            <p><strong>Arsitektur:</strong> ${data.model_info.architecture}</p>
+                            <p><strong>Timesteps:</strong> ${data.model_info.timesteps} hari</p>
+                            <p><strong>Fitur:</strong> ${data.model_info.features.join(', ')}</p>
+                            <p><strong>RMSE:</strong> ${data.model_info.rmse}</p>
+                            <p><strong>MAE:</strong> ${data.model_info.mae}</p>
+    </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                document.getElementById('predictionResult').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error: ${error.message}
+                    </div>
+                `;
+            });
+        }
+
+        function showHistoricalData() {
+            showLoading('historicalData');
+            
+            fetch('/historical_data')
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById('historicalData').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Error: ${data.error}
+                        </div>
+                    `;
+                } else {
+                    document.getElementById('historicalData').innerHTML = `
+                        <div class="plot-container">
+                            <img src="data:image/png;base64,${data.plot}" alt="Historical Data Plot">
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="metric-card">
+                                    <div class="metric-value">${data.stats.train_period}</div>
+                                    <div class="metric-label">Periode Training</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">${data.stats.avg_temp_train}</div>
+                                    <div class="metric-label">Rata-rata Suhu Training</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">${data.stats.max_temp}</div>
+                                    <div class="metric-label">Suhu Maksimum</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="metric-card">
+                                    <div class="metric-value">${data.stats.test_period}</div>
+                                    <div class="metric-label">Periode Testing</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">${data.stats.avg_temp_test}</div>
+                                    <div class="metric-label">Rata-rata Suhu Testing</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value">${data.stats.min_temp}</div>
+                                    <div class="metric-label">Suhu Minimum</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                document.getElementById('historicalData').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error: ${error.message}
+                    </div>
+                `;
+            });
+        }
+
+        function showModelPerformance() {
+            showLoading('modelPerformance');
+            
+            fetch('/model_performance')
+        .then(response => response.json())
+        .then(data => {
+          if (data.error) {
+                    document.getElementById('modelPerformance').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Error: ${data.error}
+                        </div>
+                    `;
+          } else {
+                    document.getElementById('modelPerformance').innerHTML = `
+                        <div class=\"plot-container\"> 
+                            <img src=\"data:image/png;base64,${data.plot}\" alt=\"Model Performance Plot\"> 
+                        </div>
+                        <div class=\"row g-3\">
+                            <div class=\"col-md-6\">
+                                <div class=\"metric-card\">
+                                    <div class=\"metric-value\">${data.metrics.rmse}</div>
+                                    <div class=\"metric-label\">RMSE</div>
+                                </div>
+                                <div class=\"metric-card\">
+                                    <div class=\"metric-value\">${data.metrics.r2}</div>
+                                    <div class=\"metric-label\">R² Score</div>
+                                </div>
+                            </div>
+                            <div class=\"col-md-6\">
+                                <div class=\"metric-card\">
+                                    <div class=\"metric-value\">${data.metrics.mae}</div>
+                                    <div class=\"metric-label\">MAE</div>
+                                </div>
+                                <div class=\"metric-card\">
+                                    <div class=\"metric-value\">${data.metrics.mape}</div>
+                                    <div class=\"metric-label\">MAPE</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-info-circle"></i> Informasi Model:</h6>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Arsitektur:</strong> ${data.model_info.architecture}</p>
+                                    <p><strong>Timesteps:</strong> ${data.model_info.timesteps} hari</p>
+                                    <p><strong>Fitur:</strong> ${data.model_info.features.join(', ')}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Training Samples:</strong> ${data.model_info.training_samples}</p>
+                                    <p><strong>Test Samples:</strong> ${data.model_info.test_samples}</p>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+          }
+        })
+        .catch(error => {
+                document.getElementById('modelPerformance').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error: ${error.message}
+                    </div>
+                `;
+            });
+        }
+
+        function manualPredict() {
+            const resultId = 'manualPredictResult';
+            // create container if not exists
+            if (!document.getElementById(resultId)) {
+                const holder = document.createElement('div');
+                holder.id = resultId;
+                document.body.appendChild(holder);
+            }
+            showLoading(resultId);
+
+            const fileInput = document.getElementById('manualCsvFile');
+            const textArea = document.getElementById('manualCsvText');
+            const formData = new FormData();
+
+            if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                formData.append('file', fileInput.files[0]);
+            } else if (textArea && textArea.value.trim().length > 0) {
+                formData.append('csv_text', textArea.value.trim());
+            } else {
+                // kumpulkan data dari tabel input manual
+                const rows = collectManualRows();
+                if (!rows || rows.length === 0) {
+                    document.getElementById(resultId).innerHTML = `
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle"></i> Harap unggah CSV, tempel teks CSV, atau isi tabel input manual.
+                        </div>
+                    `;
+                    return;
+                }
+                // kirim sebagai JSON
+                fetch('/manual_predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ rows })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        document.getElementById(resultId).innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle"></i> Error: ${data.error}
+                            </div>
+                        `;
+                    } else {
+                        document.getElementById(resultId).innerHTML = `
+                            <div class="prediction-result">
+                                <h4><i class="fas fa-thermometer-half"></i> Prediksi Suhu (Input Manual)</h4>
+                                <div class="prediction-value">${data.prediction}</div>
+                                <p><i class="fas fa-info-circle"></i> ${data.info || ''}</p>
+                            </div>
+                            <div class="plot-container">
+                                <img src="data:image/png;base64,${data.plot}" alt="Manual Prediction Plot">
+                            </div>
+                        `;
+                    }
+                })
+                .catch(error => {
+                    document.getElementById(resultId).innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Error: ${error.message}
+                        </div>
+                    `;
+                });
+                return;
+            }
+
+            fetch('/manual_predict', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.error) {
+                    document.getElementById(resultId).innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i> Error: ${data.error}
+                        </div>
+                    `;
+                } else {
+                    document.getElementById(resultId).innerHTML = `
+                        <div class="prediction-result">
+                            <h4><i class="fas fa-thermometer-half"></i> Prediksi Suhu (Dataset Manual)</h4>
+                            <div class="prediction-value">${data.prediction}</div>
+                            <p><i class="fas fa-info-circle"></i> ${data.info || ''}</p>
+                        </div>
+                        <div class="plot-container">
+                            <img src="data:image/png;base64,${data.plot}" alt="Manual Prediction Plot">
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                document.getElementById(resultId).innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Error: ${error.message}
+                    </div>
+                `;
+            });
+    }
+
+        function addManualRow() {
+            const tbody = document.getElementById('manualRowsBody');
+            const idx = tbody.children.length + 1;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${idx}</td>
+                <td><input type="number" step="any" class="form-control form-control-sm" placeholder="meantemp"></td>
+                <td><input type="number" step="any" class="form-control form-control-sm" placeholder="humidity"></td>
+                <td><input type="number" step="any" class="form-control form-control-sm" placeholder="wind_speed"></td>
+                <td><input type="number" step="any" class="form-control form-control-sm" placeholder="meanpressure"></td>
+                <td><button class="btn btn-sm btn-outline-danger" onclick="this.closest('tr').remove(); renumberRows();"><i class="fas fa-times"></i></button></td>
+            `;
+            tbody.appendChild(tr);
+        }
+
+        function renumberRows() {
+            const rows = document.querySelectorAll('#manualRowsBody tr');
+            rows.forEach((tr, i) => {
+                const first = tr.querySelector('td');
+                if (first) first.textContent = String(i + 1);
+            });
+        }
+
+        function clearManualRows() {
+            document.getElementById('manualRowsBody').innerHTML = '';
+        }
+
+        function normalizeNumber(str) {
+            if (typeof str !== 'string') return str;
+            // ganti koma desimal menjadi titik
+            return str.replace(',', '.');
+        }
+
+        function collectManualRows() {
+            const rows = [];
+            const trs = document.querySelectorAll('#manualRowsBody tr');
+            trs.forEach(tr => {
+                const inputs = tr.querySelectorAll('input');
+                if (inputs.length >= 4) {
+                    const meantemp = parseFloat(normalizeNumber(inputs[0].value));
+                    const humidity = parseFloat(normalizeNumber(inputs[1].value));
+                    const wind_speed = parseFloat(normalizeNumber(inputs[2].value));
+                    const meanpressure = parseFloat(normalizeNumber(inputs[3].value));
+                    if ([meantemp, humidity, wind_speed, meanpressure].every(v => Number.isFinite(v))) {
+                        rows.push({ meantemp, humidity, wind_speed, meanpressure });
+                    }
+                }
+            });
+            return rows;
+    }
+  </script>
+</body>
+</html>
